@@ -1,5 +1,5 @@
 package com.jade.agentes;
-
+//Traemos las herramientas de JADE
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
