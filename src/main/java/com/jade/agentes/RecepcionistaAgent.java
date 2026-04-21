@@ -16,7 +16,7 @@ public class RecepcionistaAgent extends Agent {
         System.out.println(getLocalName() + " iniciado. Esperando a que los demás agentes se registren...");
 
         // --- Usamos WakerBehaviour y le damos 5000 milisegundos (5 segundos) de espera ---
-        addBehaviour(new WakerBehaviour(this, 5000) {
+        addBehaviour(new WakerBehaviour(this, 10000) {
 
             // En un WakerBehaviour, el método se llama onWake() en lugar de action()
             protected void onWake() {
