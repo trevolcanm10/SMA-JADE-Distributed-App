@@ -1,18 +1,37 @@
-  services:
-    main-platform:
-      image: maven:3.8.6-openjdk-11
-      volumes:
-        - .:/app
-      working_dir: /app
-      command: mvn clean compile exec:java -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -Dexec.mainClass="jade.Boot" -Dexec.args="-name P1 -host main-platform -agents A1:com.jade.agentes.AgenteInicial;A3:com.jade.agentes.AgenteInicial"
-      ports:
-        - "1099:1099" # Puerto principal de JADE
+services:
+  main-platform:
+    image: maven:3.8.6-openjdk-11
+    container_name: main-platform
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      mvn -q clean compile exec:java
+      -Djava.awt.headless=true
+      -Dexec.mainClass=jade.Boot
+      -Dexec.args="-name P1 -local-host main-platform -host main-platform -port 1099"
+    ports:
+      - "1099:1099"
+    networks:
+      - jade-net
 
-    remote-container:
-      image: maven:3.8.6-openjdk-11
-      volumes:
-        - .:/app
-      working_dir: /app
-      command: mvn exec:java -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -Dexec.mainClass="jade.Boot" -Dexec.args="-container -host main-platform -agents A2:com.jade.agentes.AgenteInicial;A4:com.jade.agentes.AgenteInicial"
-      depends_on:
-        - main-platform
+  remote-container:
+    image: maven:3.8.6-openjdk-11
+    container_name: remote-container
+    volumes:
+      - .:/app
+    working_dir: /app
+    depends_on:
+      - main-platform
+    command: >
+      sh -c "sleep 10 &&
+      mvn -q exec:java
+      -Djava.awt.headless=true
+      -Dexec.mainClass=jade.Boot
+      -Dexec.args='-container -host main-platform -port 1099 -agents R1:com.jade.agentes.RecepcionistaAgent;T1:com.jade.agentes.TriageAgent;A1:com.jade.agentes.DoctorAssignerAgent;D1:com.jade.agentes.DoctorAgent'"
+    networks:
+      - jade-net
+
+networks:
+  jade-net:
+    driver: bridge

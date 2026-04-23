@@ -30,7 +30,7 @@ public class MainContainer {
         // Crea un perfil de configuración para el contenedor principal
         Profile profile = new ProfileImpl();
         // Habilita la interfaz gráfica de JADE para monitorear los agentes
-        profile.setParameter(Profile.GUI, "true");
+        //profile.setParameter(Profile.GUI, "true");
 
         // Crea el contenedor principal de JADE con el perfil configurado
         AgentContainer container =
