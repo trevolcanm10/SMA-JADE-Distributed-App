@@ -1,53 +1,84 @@
-package com.jade.agentes;
+    package com.jade.agentes;
 
-import jade.core.Agent;
-import jade.core.behaviours.WakerBehaviour;
-import jade.lang.acl.ACLMessage;
+    import jade.core.AID;
+    import jade.core.Agent;
+    import jade.lang.acl.ACLMessage;
+    public class RecepcionistaAgent extends Agent {
 
-import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
-import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.FIPAException;
+        private String[][] pacientes = {
+            {"Juan", "dificultad respiratoria"},
+            {"Ana", "fiebre"},
+            {"Luis", "dolor cabeza"}
+        };
 
-public class RecepcionistaAgent extends Agent {
+        private int index = 0;
+        private AID triageAID;
+        protected void setup() {
 
-    protected void setup() {
+            System.out.println(getLocalName() + " iniciado. Esperando a que los demás agentes se registren...");
+            try {
 
-        System.out.println(getLocalName() + " iniciado. Esperando a que los demás agentes se registren...");
+                jade.domain.FIPAAgentManagement.DFAgentDescription template
+                        = new jade.domain.FIPAAgentManagement.DFAgentDescription();
 
-        // --- Usamos WakerBehaviour y le damos 5000 milisegundos (5 segundos) de espera ---
-        addBehaviour(new WakerBehaviour(this, 10000) {
+                jade.domain.FIPAAgentManagement.ServiceDescription sdTriaje
+                        = new jade.domain.FIPAAgentManagement.ServiceDescription();
 
-            // En un WakerBehaviour, el método se llama onWake() en lugar de action()
-            protected void onWake() {
-
-                String paciente = "Juan";
-                String sintoma = "dificultad respiratoria";
-
-                ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-
-                DFAgentDescription template = new DFAgentDescription();
-                ServiceDescription sdTriaje = new ServiceDescription();
                 sdTriaje.setType("triaje-medico");
                 template.addServices(sdTriaje);
-                
-                try {
-                    DFAgentDescription[] result = DFService.search(myAgent, template);
-                    if (result.length > 0) {
-                        msg.addReceiver(result[0].getName());
-                        System.out.println("¡Triage encontrado en el DF! Enviando datos...");
-                    } else {
-                        System.out.println("No se encontró ningún agente de Triaje en las Páginas Amarillas.");
-                    }
-                } catch (FIPAException fe) {
-                    fe.printStackTrace();
+
+                jade.domain.FIPAAgentManagement.DFAgentDescription[] result
+                        = jade.domain.DFService.search(this, template);
+
+                if (result.length > 0) {
+                    triageAID = result[0].getName();
+                    System.out.println("Triage guardado en memoria.");
+                } else {
+                    System.out.println("Triage no encontrado en DF al inicio.");
                 }
 
-                msg.setContent(paciente + "," + sintoma);
-                send(msg);
-
-                System.out.println("Datos enviados al Triage.");
+            } catch (jade.domain.FIPAException fe) {
+                fe.printStackTrace();
             }
-        });
+            
+            addBehaviour(new jade.core.behaviours.TickerBehaviour(this, 5000) {
+
+                protected void onTick() {
+                    
+                    if (index >= pacientes.length) {
+                        System.out.println("No hay más pacientes.");
+                        myAgent.removeBehaviour(this);
+                        return;
+                    }
+
+                    String paciente = pacientes[index][0];
+                    String sintoma = pacientes[index][1];
+                    index++;
+
+                    ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+
+                    try {
+
+                        if (triageAID != null) {
+
+                            msg.addReceiver(triageAID);
+                            msg.setContent(paciente + "," + sintoma);
+
+                            send(msg);
+
+                            System.out.println("¡Triage encontrado (cache)!");
+                            System.out.println("Datos enviados al Triage.");
+
+                        } else {
+
+                            System.out.println("Triage no disponible en memoria.");
+                            System.out.println("Mensaje NO enviado (evita errores).");
+                        }
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
     }
-}

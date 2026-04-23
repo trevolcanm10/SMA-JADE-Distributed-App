@@ -2,12 +2,11 @@ package com.jade.agentes;
 
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.lang.acl.ACLMessage;
-
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
+import jade.lang.acl.ACLMessage;
 
 /**
  * Agente de Triage: Se encarga de clasificar a los pacientes
@@ -50,7 +49,7 @@ public class TriageAgent extends Agent {
                 ACLMessage msg = receive();
 
                 // Si llego un mensaje (hay un paciente para procesar)
-                if (msg != null) {
+                while (msg != null) {
 
                     // Obtener el contenido del mensaje
                     String contenido = msg.getContent();
@@ -58,6 +57,11 @@ public class TriageAgent extends Agent {
                     // Separar los datos del paciente (nombre y sintoma)
                     String[] datos = contenido.split(",");
 
+                    if (datos.length < 2) {
+                        System.out.println("Mensaje inválido recibido");
+                        msg = receive();
+                        continue;
+                    }
                     // Extraer el nombre del paciente
                     String paciente = datos[0];
 
@@ -83,29 +87,19 @@ public class TriageAgent extends Agent {
                         DFAgentDescription[] result = DFService.search(myAgent, template);
                         if (result.length > 0) {
                             nuevo.addReceiver(result[0].getName());
+                            nuevo.setContent(paciente + "," + nivel);
+                            send(nuevo);
+                            System.out.println("Paciente enviado al asignador.");
                         } else {
-                            System.out.println("No se encontró ningún Asignador en las Páginas Amarillas.");
+                            System.out.println("Asignador no disponible aún.");
                         }
                     } catch (FIPAException fe) {
                         fe.printStackTrace();
                     }
-
-                    // Poner en el mensaje los datos del paciente y su nivel de prioridad
-                    nuevo.setContent(paciente + "," + nivel);
-
-                    // Enviar el mensaje
-                    send(nuevo);
-
-                // Si no hay ningun mensaje pendiente
-                } else {
-
-                    // Poner el agente en modo espera hasta que llegue un nuevo mensaje
-                    block();
-
+                    msg = receive();
                 }
-
+                block();
             }
-
         });
 
     }

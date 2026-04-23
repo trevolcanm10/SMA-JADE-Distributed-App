@@ -2,12 +2,11 @@ package com.jade.agentes;
 
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.lang.acl.ACLMessage;
-
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
+import jade.lang.acl.ACLMessage;
 
 /**
  * Agente encargado de asignar médicos a pacientes según su nivel de urgencia.
@@ -22,6 +21,12 @@ public class DoctorAssignerAgent extends Agent {
      * Configura el comportamiento cíclico para recibir y procesar mensajes.
      */
     protected void setup() {
+        //Esperar que los demas agentes arranquen:
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         // --- REGISTRO DEL SERVICIO EN EL DF ---
         // Este código registra al agente en las páginas amarillas como "asignacion-medica"

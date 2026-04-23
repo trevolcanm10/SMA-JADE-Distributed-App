@@ -9,7 +9,7 @@ services:
       mvn -q clean compile exec:java
       -Djava.awt.headless=true
       -Dexec.mainClass=jade.Boot
-      -Dexec.args="-name P1 -local-host main-platform -host main-platform -port 1099"
+      -Dexec.args="-name P1 -local-host main-platform -host main-platform -port 1099 -agents R1:com.jade.agentes.RecepcionistaAgent;T1:com.jade.agentes.TriageAgent"
     ports:
       - "1099:1099"
     networks:
@@ -28,7 +28,7 @@ services:
       mvn -q exec:java
       -Djava.awt.headless=true
       -Dexec.mainClass=jade.Boot
-      -Dexec.args='-container -host main-platform -port 1099 -agents R1:com.jade.agentes.RecepcionistaAgent;T1:com.jade.agentes.TriageAgent;A1:com.jade.agentes.DoctorAssignerAgent;D1:com.jade.agentes.DoctorAgent'"
+      -Dexec.args='-container -host main-platform -port 1099 -agents A1:com.jade.agentes.DoctorAssignerAgent;D1:com.jade.agentes.DoctorAgent'"
     networks:
       - jade-net
 
