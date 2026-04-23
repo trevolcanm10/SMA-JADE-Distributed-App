@@ -43,7 +43,7 @@ public class DoctorAssignerAgent extends Agent {
         }
 
         System.out.println(getLocalName() + " iniciado.");
-
+        System.out.println(getLocalName() + " listo y esperando mensajes...");
         // Agrega un comportamiento cíclico para procesar mensajes continuamente
         addBehaviour(new CyclicBehaviour() {
 
@@ -88,19 +88,16 @@ public class DoctorAssignerAgent extends Agent {
                         if (result.length > 0) {
                             // Toma el primer agente médico que encuentre en el DF
                             nuevo.addReceiver(result[0].getName());
+                            nuevo.setContent(paciente + "," + medico);
+                            send(nuevo);
+                            System.out.println("Mensaje enviado al Doctor: " + medico);
                         } else {
                             System.out.println("No se encontró ningún Doctor en las Páginas Amarillas.");
+                            block(1000);
                         }
                     } catch (FIPAException fe) {
                         fe.printStackTrace();
                     }
-
-                    // Establece el contenido del mensaje con paciente y médico asignado
-                    nuevo.setContent(paciente + "," + medico);
-
-                    // Envía el mensaje al agente médico
-                    send(nuevo);
-
                 } else {
                     // Si no hay mensajes, bloquea el comportamiento hasta que llegue uno nuevo
                     block();
