@@ -38,6 +38,7 @@ public class DoctorAssignerAgent extends Agent {
         dfd.addServices(sd);
         try {
             DFService.register(this, dfd);
+            System.out.println("✔ DoctorAssigner registrado en DF");
         } catch (FIPAException fe) {
             fe.printStackTrace();
         }

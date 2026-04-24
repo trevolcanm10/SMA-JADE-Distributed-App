@@ -14,6 +14,7 @@ import jade.lang.acl.ACLMessage;
  */
 public class TriageAgent extends Agent {
 
+    private jade.core.AID asignadorAID = null;// AID del Asignador
     /**
      * Metodo que se ejecuta automaticamente cuando se inicia el agente
      */
@@ -45,11 +46,33 @@ public class TriageAgent extends Agent {
              */
             public void action() {
 
+                if (asignadorAID == null) {
+                    DFAgentDescription template = new DFAgentDescription();
+                    ServiceDescription sdAsignador = new ServiceDescription();
+                    sdAsignador.setType("asignacion-medica"); // Busca el servicio del Asignador
+                    template.addServices(sdAsignador);
+                    try {
+                        DFAgentDescription[] result = DFService.search(myAgent, template);
+
+                        if (result.length > 0) {
+                            asignadorAID = result[0].getName();
+                            System.out.println("✔ Asignador encontrado en DF");
+                        } else {
+                            System.out.println("Esperando que el Asignador se registre..");
+                            block(2000);
+                            return;
+                        }
+                    } catch (FIPAException fe) {
+                        fe.printStackTrace();
+                        return;
+                    }
+                }
+
                 // Recibir mensaje entrante con los datos del paciente
                 ACLMessage msg = receive();
 
                 // Si llego un mensaje (hay un paciente para procesar)
-                while (msg != null) {
+                if (msg != null) {
 
                     // Obtener el contenido del mensaje
                     String contenido = msg.getContent();
@@ -57,11 +80,6 @@ public class TriageAgent extends Agent {
                     // Separar los datos del paciente (nombre y sintoma)
                     String[] datos = contenido.split(",");
 
-                    if (datos.length < 2) {
-                        System.out.println("Mensaje inválido recibido");
-                        msg = receive();
-                        continue;
-                    }
                     // Extraer el nombre del paciente
                     String paciente = datos[0];
 
@@ -77,28 +95,23 @@ public class TriageAgent extends Agent {
                     // Crear un nuevo mensaje para enviar al agente asignador
                     ACLMessage nuevo = new ACLMessage(ACLMessage.INFORM);
 
-                    // --- BÚSQUEDA DINÁMICA DEL ASIGNADOR EN EL DF ---
-                    DFAgentDescription template = new DFAgentDescription();
-                    ServiceDescription sdAsignador = new ServiceDescription();
-                    sdAsignador.setType("asignacion-medica"); // Busca el servicio del Asignador
-                    template.addServices(sdAsignador);
-                    
-                    try {
-                        DFAgentDescription[] result = DFService.search(myAgent, template);
-                        if (result.length > 0) {
-                            nuevo.addReceiver(result[0].getName());
-                            nuevo.setContent(paciente + "," + nivel);
-                            send(nuevo);
-                            System.out.println("Paciente enviado al asignador.");
-                        } else {
-                            System.out.println("Asignador no disponible aún.");
-                        }
-                    } catch (FIPAException fe) {
-                        fe.printStackTrace();
+                    nuevo.addReceiver(asignadorAID);
+                    // Poner en el mensaje los datos del paciente y su nivel de prioridad
+                    nuevo.setContent(paciente + "," + nivel);
+                    // Enviar el mensaje
+                    if (asignadorAID != null) {
+                        nuevo.addReceiver(asignadorAID);
+                        nuevo.setContent(paciente + "," + nivel);
+                        send(nuevo);
+                    }else {
+                        System.out.println("Asignador aún no disponible.");
                     }
-                    msg = receive();
+
+                // Si no hay ningun mensaje pendiente
+                } else {
+                    // Poner el agente en modo espera hasta que llegue un nuevo mensaje
+                    block();
                 }
-                block();
             }
         });
 

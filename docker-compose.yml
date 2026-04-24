@@ -24,11 +24,10 @@ services:
     depends_on:
       - main-platform
     command: >
-      sh -c "sleep 10 &&
       mvn -q exec:java
       -Djava.awt.headless=true
       -Dexec.mainClass=jade.Boot
-      -Dexec.args='-container -host main-platform -port 1099 -agents A1:com.jade.agentes.DoctorAssignerAgent;D1:com.jade.agentes.DoctorAgent'"
+      -Dexec.args='-container -host main-platform -port 1099 -agents A1:com.jade.agentes.DoctorAssignerAgent;D1:com.jade.agentes.DoctorAgent'
     networks:
       - jade-net
 
