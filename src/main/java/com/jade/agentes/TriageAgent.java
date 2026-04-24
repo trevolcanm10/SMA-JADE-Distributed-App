@@ -15,6 +15,7 @@ import jade.lang.acl.ACLMessage;
 public class TriageAgent extends Agent {
 
     private jade.core.AID asignadorAID = null;// AID del Asignador
+    private boolean esperandoAsignador = false;// Indica si el agente esta esperando al Asignador
     /**
      * Metodo que se ejecuta automaticamente cuando se inicia el agente
      */
@@ -56,9 +57,15 @@ public class TriageAgent extends Agent {
 
                         if (result.length > 0) {
                             asignadorAID = result[0].getName();
+                            esperandoAsignador = false;
                             System.out.println("✔ Asignador encontrado en DF");
                         } else {
-                            System.out.println("Esperando que el Asignador se registre..");
+                            if (!esperandoAsignador) {
+
+                                System.out.println("Esperando que el Asignador se registre..");
+                                esperandoAsignador = true;
+
+                            }
                             block(2000);
                             return;
                         }
@@ -94,10 +101,6 @@ public class TriageAgent extends Agent {
 
                     // Crear un nuevo mensaje para enviar al agente asignador
                     ACLMessage nuevo = new ACLMessage(ACLMessage.INFORM);
-
-                    nuevo.addReceiver(asignadorAID);
-                    // Poner en el mensaje los datos del paciente y su nivel de prioridad
-                    nuevo.setContent(paciente + "," + nivel);
                     // Enviar el mensaje
                     if (asignadorAID != null) {
                         nuevo.addReceiver(asignadorAID);
