@@ -13,34 +13,11 @@
 
         private int index = 0;
         private AID triageAID;
+        private boolean esperandoTriage = false;
         protected void setup() {
 
             System.out.println(getLocalName() + " iniciado. Esperando a que los demás agentes se registren...");
-            try {
-
-                jade.domain.FIPAAgentManagement.DFAgentDescription template
-                        = new jade.domain.FIPAAgentManagement.DFAgentDescription();
-
-                jade.domain.FIPAAgentManagement.ServiceDescription sdTriaje
-                        = new jade.domain.FIPAAgentManagement.ServiceDescription();
-
-                sdTriaje.setType("triaje-medico");
-                template.addServices(sdTriaje);
-
-                jade.domain.FIPAAgentManagement.DFAgentDescription[] result
-                        = jade.domain.DFService.search(this, template);
-
-                if (result.length > 0) {
-                    triageAID = result[0].getName();
-                    System.out.println("Triage guardado en memoria.");
-                } else {
-                    System.out.println("Triage no encontrado en DF al inicio.");
-                }
-
-            } catch (jade.domain.FIPAException fe) {
-                fe.printStackTrace();
-            }
-            
+           
             addBehaviour(new jade.core.behaviours.TickerBehaviour(this, 5000) {
 
                 protected void onTick() {
@@ -53,27 +30,48 @@
 
                     String paciente = pacientes[index][0];
                     String sintoma = pacientes[index][1];
-                    index++;
-
+                    
                     ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 
                     try {
 
-                        if (triageAID != null) {
+                        if (triageAID == null){
 
-                            msg.addReceiver(triageAID);
-                            msg.setContent(paciente + "," + sintoma);
+                            jade.domain.FIPAAgentManagement.DFAgentDescription template
+                                    = new jade.domain.FIPAAgentManagement.DFAgentDescription();
 
-                            send(msg);
+                            jade.domain.FIPAAgentManagement.ServiceDescription sdTriaje
+                                    = new jade.domain.FIPAAgentManagement.ServiceDescription();
 
-                            System.out.println("¡Triage encontrado (cache)!");
-                            System.out.println("Datos enviados al Triage.");
+                            sdTriaje.setType("triaje-medico");
+                            template.addServices(sdTriaje);
 
-                        } else {
+                            jade.domain.FIPAAgentManagement.DFAgentDescription[] result
+                                    = jade.domain.DFService.search(myAgent, template);
 
-                            System.out.println("Triage no disponible en memoria.");
-                            System.out.println("Mensaje NO enviado (evita errores).");
+                            if (result.length > 0) {
+
+                                triageAID = result[0].getName();
+                                esperandoTriage = false;
+                                System.out.println("✔ Triage encontrado en DF.");
+
+                            } else {
+
+                                if (!esperandoTriage) {
+                                    System.out.println("Esperando que el Triage se registre...");
+                                    esperandoTriage = true;
+                                }
+
+                                return; // aún no enviamos nada
+
+                            }
                         }
+                        // 📩 Enviar mensaje cuando ya existe
+                        msg.addReceiver(triageAID);
+                        msg.setContent(paciente + "," + sintoma);
+                        send(msg);
+                        System.out.println("Datos enviados al Triage.");
+                        index++;
 
                     } catch (Exception e) {
                         e.printStackTrace();
