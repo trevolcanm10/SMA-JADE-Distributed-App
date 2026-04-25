@@ -50,17 +50,19 @@ public class DoctorAgent extends Agent {
                 // Verifica si se recibió un mensaje
                 if (msg != null) {
 
-                    // Divide el contenido del mensaje por coma para extraer paciente y médico
+                    // Recibimos 3 datos: [0]paciente, [1]medico, [2]nivel
                     String[] datos = msg.getContent().split(",");
 
-                    // Obtiene el nombre del paciente del primer elemento
                     String paciente = datos[0];
-
-                    // Obtiene el nombre del médico del segundo elemento
                     String medico = datos[1];
+                    String nivel = datos[2];
 
                     // Imprime la información de asignación en la consola
-                    System.out.println("Paciente " + paciente + " será atendido por " + medico);
+                    System.out.println("      [Asignador] -> " + paciente + " (Prioridad: " + nivel + ") asignado a: " + medico);
+                    System.out.println("      Mensaje enviado al Doctor: " + medico);
+                    System.out.println("--------------------------------------------------");
+                    System.out.println("  ATENCION MEDICA: " + paciente + " | MEDICO: " + medico);
+                    System.out.println("--------------------------------------------------");
 
                 } else {
                     // Si no hay mensaje disponible, bloquea hasta que llegue un nuevo mensaje

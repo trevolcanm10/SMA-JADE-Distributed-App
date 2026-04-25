@@ -73,7 +73,7 @@ public class DoctorAssignerAgent extends Agent {
                     String medico = asignar(nivel);
 
                     // Muestra en consola el médico asignado
-                    System.out.println("Medico asignado: " + medico);
+                    // System.out.println("      [Asignador] -> " + paciente + " asignado a: " + medico);
 
                     // Crea un nuevo mensaje para enviar al agente médico
                     ACLMessage nuevo = new ACLMessage(ACLMessage.INFORM);
@@ -89,14 +89,16 @@ public class DoctorAssignerAgent extends Agent {
                         if (result.length > 0) {
                             // Toma el primer agente médico que encuentre en el DF
                             nuevo.addReceiver(result[0].getName());
-                            nuevo.setContent(paciente + "," + medico);
+                            nuevo.setContent(paciente + "," + medico + "," + nivel);
                             send(nuevo);
-                            System.out.println("Mensaje enviado al Doctor: " + medico);
+
+                            // Añadimos una pequeña pausa de 500ms para que los logs no se amontonen
+                            Thread.sleep(500);
                         } else {
                             System.out.println("No se encontró ningún Doctor en las Páginas Amarillas.");
                             block(1000);
                         }
-                    } catch (FIPAException fe) {
+                    } catch (Exception fe) {
                         fe.printStackTrace();
                     }
                 } else {

@@ -8,7 +8,14 @@
         private String[][] pacientes = {
             {"Juan", "dificultad respiratoria"},
             {"Ana", "fiebre"},
-            {"Luis", "dolor cabeza"}
+            {"Luis", "dolor cabeza"},
+            {"Maria", "infarto"},
+            {"Carlos", "fractura"},
+            {"Elena", "gripe"},
+            {"Pedro", "dolor de estomago"},
+            {"Sofia", "quemadura"},
+            {"Jorge", "corte profundo"},
+            {"Lucia", "nauseas"}
         };
 
         private int index = 0;

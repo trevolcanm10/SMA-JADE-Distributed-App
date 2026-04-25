@@ -138,12 +138,17 @@ public class TriageAgent extends Agent {
     private String clasificar(String sintoma) {
 
         // Caso 1: Dificultad respiratoria = Maxima prioridad
-        if (sintoma.equals("dificultad respiratoria")) {
+        if (sintoma.equals("dificultad respiratoria") || 
+        sintoma.equals("infarto") || 
+        sintoma.equals("quemadura")) {
 
             return "ROJO";
 
         // Caso 2: Fiebre = Prioridad media
-        } else if (sintoma.equals("fiebre")) {
+        } else if (sintoma.equals("fiebre") || 
+        sintoma.equals("fractura") || 
+        sintoma.equals("dolor de estomago") || 
+        sintoma.equals("corte profundo")) {
 
             return "AMARILLO";
 
