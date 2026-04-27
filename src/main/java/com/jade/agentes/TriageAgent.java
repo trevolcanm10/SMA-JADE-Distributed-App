@@ -1,161 +1,66 @@
 package com.jade.agentes;
 
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
+import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 
-/**
- * Agente de Triage: Se encarga de clasificar a los pacientes
- * segun su sintoma y asignarles un nivel de prioridad.
- */
 public class TriageAgent extends Agent {
-
-    private jade.core.AID asignadorAID = null;// AID del Asignador
-    private boolean esperandoAsignador = false;// Indica si el agente esta esperando al Asignador
-    /**
-     * Metodo que se ejecuta automaticamente cuando se inicia el agente
-     */
+    @Override
     protected void setup() {
-
-        // --- REGISTRO DEL SERVICIO EN EL DF ---
-        // Registramos al agente de triaje para que la recepcionista pueda encontrarlo
+        // 1. Registro en el DF de la Plataforma A
         DFAgentDescription dfd = new DFAgentDescription();
         dfd.setName(getAID());
         ServiceDescription sd = new ServiceDescription();
-        sd.setType("triaje-medico"); // Tipo de servicio que ofrece
-        sd.setName("servicio-triaje");
+        sd.setType("triage");
+        sd.setName("servicio-triage");
         dfd.addServices(sd);
         try {
             DFService.register(this, dfd);
-        } catch (FIPAException fe) {
-            fe.printStackTrace();
-        }
+        } catch (FIPAException fe) { fe.printStackTrace(); }
 
-        // Mostrar mensaje en consola confirmando que el agente se ha iniciado
-        System.out.println(getLocalName() + " iniciado.");
-
-        // Agregar un comportamiento que se ejecutara de forma continua (infinitamente)
-        addBehaviour(new CyclicBehaviour() {
-
-            /**
-             * Accion principal del comportamiento:
-             * Espera mensajes y procesa cada paciente que llega
-             */
+        addBehaviour(new CyclicBehaviour(this) {
+            @Override
             public void action() {
+                ACLMessage msg = myAgent.receive();
+                if (msg != null && msg.getPerformative() == ACLMessage.INFORM) {
+                    String[] partes = msg.getContent().split(",");
+                    if (partes.length >= 2) {
+                        String nombre = partes[0].trim();
+                        String gravedad = partes[1].trim();
+                        
+                        System.out.println("[Triage] Procesando y enviando a Plataforma B por IP Directa...");
 
-                if (asignadorAID == null) {
-                    DFAgentDescription template = new DFAgentDescription();
-                    ServiceDescription sdAsignador = new ServiceDescription();
-                    sdAsignador.setType("asignacion-medica"); // Busca el servicio del Asignador
-                    template.addServices(sdAsignador);
-                    try {
-                        DFAgentDescription[] result = DFService.search(myAgent, template);
+                        // 2. Definición del Receptor en Plataforma Externa
+                        // El nombre DEBE coincidir con el del agente y el -name de la plataforma
+                        // 2. Definición del Receptor en Plataforma Externa
+                        AID remoteAID = new AID("Asignador@PlataformaGestion", AID.ISGUID);
+                                            
+                        // 3. Configuración del Transporte Inter-Plataforma (MTP)
+                        remoteAID.clearAllAddresses(); 
+                        remoteAID.addAddresses("http://172.20.0.3:7778/acc"); 
+                                            
+                        // 4. Construcción del Mensaje
+                        ACLMessage msgAsignador = new ACLMessage(ACLMessage.REQUEST);
+                        msgAsignador.addReceiver(remoteAID); // JADE usará la dirección añadida arriba
+                        msgAsignador.setContent(nombre + "," + gravedad);
 
-                        if (result.length > 0) {
-                            asignadorAID = result[0].getName();
-                            esperandoAsignador = false;
-                            System.out.println("✔ Asignador encontrado en DF");
-                        } else {
-                            if (!esperandoAsignador) {
-
-                                System.out.println("Esperando que el Asignador se registre..");
-                                esperandoAsignador = true;
-
-                            }
-                            block(2000);
-                            return;
-                        }
-                    } catch (FIPAException fe) {
-                        fe.printStackTrace();
-                        return;
+                        // 5. Envío
+                        myAgent.send(msgAsignador);
                     }
-                }
-
-                // Recibir mensaje entrante con los datos del paciente
-                ACLMessage msg = receive();
-
-                // Si llego un mensaje (hay un paciente para procesar)
-                if (msg != null) {
-
-                    // Obtener el contenido del mensaje
-                    String contenido = msg.getContent();
-
-                    // Separar los datos del paciente (nombre y sintoma)
-                    String[] datos = contenido.split(",");
-
-                    // Extraer el nombre del paciente
-                    String paciente = datos[0];
-
-                    // Extraer el sintoma del paciente
-                    String sintoma = datos[1];
-
-                    // Clasificar al paciente segun su sintoma (obtener nivel de prioridad)
-                    String nivel = clasificar(sintoma);
-
-                    // Mostrar en consola el resultado de la clasificacion
-                    System.out.println("Paciente: " + paciente + " Nivel: " + nivel);
-
-                    // Crear un nuevo mensaje para enviar al agente asignador
-                    ACLMessage nuevo = new ACLMessage(ACLMessage.INFORM);
-                    // Enviar el mensaje
-                    if (asignadorAID != null) {
-                        nuevo.addReceiver(asignadorAID);
-                        nuevo.setContent(paciente + "," + nivel);
-                        send(nuevo);
-                    }else {
-                        System.out.println("Asignador aún no disponible.");
-                    }
-
-                // Si no hay ningun mensaje pendiente
                 } else {
-                    // Poner el agente en modo espera hasta que llegue un nuevo mensaje
                     block();
                 }
             }
         });
-
     }
 
-    // --- DESREGISTRO AL FINALIZAR ---
+    @Override
     protected void takeDown() {
-        try {
-            DFService.deregister(this);
-        } catch (FIPAException fe) {
-            fe.printStackTrace();
-        }
+        try { DFService.deregister(this); } catch (FIPAException fe) { fe.printStackTrace(); }
     }
-
-    /**
-     * Metodo que clasifica la prioridad de un paciente segun su sintoma
-     * ROJO = Emergencia (mayor prioridad)
-     * AMARILLO = Urgencia (prioridad media)
-     * VERDE = Normal (menor prioridad)
-     */
-    private String clasificar(String sintoma) {
-
-        // Caso 1: Dificultad respiratoria = Maxima prioridad
-        if (sintoma.equals("dificultad respiratoria") || 
-        sintoma.equals("infarto") || 
-        sintoma.equals("quemadura")) {
-
-            return "ROJO";
-
-        // Caso 2: Fiebre = Prioridad media
-        } else if (sintoma.equals("fiebre") || 
-        sintoma.equals("fractura") || 
-        sintoma.equals("dolor de estomago") || 
-        sintoma.equals("corte profundo")) {
-
-            return "AMARILLO";
-
-        }
-
-        // Cualquier otro sintoma = Prioridad baja
-        return "VERDE";
-    }
-
 }

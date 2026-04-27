@@ -1,36 +1,54 @@
-services:
-  main-platform:
-    image: maven:3.8.6-openjdk-11
-    container_name: main-platform
-    volumes:
-      - .:/app
-    working_dir: /app
-    command: >
-      mvn -q clean compile exec:java
-      -Djava.awt.headless=true
-      -Dexec.mainClass=jade.Boot
-      -Dexec.args="-name P1 -local-host main-platform -host main-platform -port 1099 -agents R1:com.jade.agentes.RecepcionistaAgent;T1:com.jade.agentes.TriageAgent"
-    ports:
-      - "1099:1099"
-    networks:
-      - jade-net
+version: '3.8'
 
-  remote-container:
+services:
+  gestion-container:
     image: maven:3.8.6-openjdk-11
-    container_name: remote-container
+    container_name: gestion-container
     volumes:
       - .:/app
     working_dir: /app
-    depends_on:
-      - main-platform
-    command: >
-      mvn -q exec:java
-      -Djava.awt.headless=true
-      -Dexec.mainClass=jade.Boot
-      -Dexec.args='-container -host main-platform -port 1099 -agents A1:com.jade.agentes.DoctorAssignerAgent;D1:com.jade.agentes.DoctorAgent'
+    ports:
+      - "1100:1100" 
+      - "7778:7778"
     networks:
-      - jade-net
+      jade-net:
+        ipv4_address: 172.20.0.3
+    environment:
+      # ¡AQUÍ ESTABA EL ERROR REAL TODO EL TIEMPO!
+      # La clase correcta es MessageTransportProtocol, NO HTTPServer
+      - MTP_URL=jade.mtp.http.MessageTransportProtocol(http://172.20.0.3:7778/acc)
+      - AGENTS_LIST=Asignador:com.jade.agentes.DoctorAssignerAgent;Doctor:com.jade.agentes.DoctorAgent
+    command: >
+      sh -c "mvn compile && 
+      java -cp 'target/classes:lib/*' jade.Boot 
+      -local-port 1100 -name PlataformaGestion 
+      -host 172.20.0.3 
+      -mtp \"$$MTP_URL\" 
+      -agents \"$$AGENTS_LIST\""
+
+  admision-container:
+    image: maven:3.8.6-openjdk-11
+    container_name: admision-container
+    volumes:
+      - .:/app
+    working_dir: /app
+    networks:
+      jade-net:
+        ipv4_address: 172.20.0.2
+    depends_on:
+      - gestion-container
+    command: >
+      sh -c "mvn compile && 
+      echo 'Esperando 40 segundos a que la Plataforma de Gestión active su MTP...' && 
+      sleep 40 && 
+      java -cp 'target/classes:lib/*' jade.Boot 
+      -name PlataformaAdmision
+      -local-port 1099 
+      -agents 'Recepcionista:com.jade.agentes.RecepcionistaAgent;Triage:com.jade.agentes.TriageAgent'"
 
 networks:
   jade-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

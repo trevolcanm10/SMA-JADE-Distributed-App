@@ -50,7 +50,7 @@
                             jade.domain.FIPAAgentManagement.ServiceDescription sdTriaje
                                     = new jade.domain.FIPAAgentManagement.ServiceDescription();
 
-                            sdTriaje.setType("triaje-medico");
+                            sdTriaje.setType("triage");
                             template.addServices(sdTriaje);
 
                             jade.domain.FIPAAgentManagement.DFAgentDescription[] result
